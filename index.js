@@ -13,7 +13,6 @@ app.use(express.json());
 
 const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@ac-leabwa6-shard-00-00.nzbu8kl.mongodb.net:27017,ac-leabwa6-shard-00-01.nzbu8kl.mongodb.net:27017,ac-leabwa6-shard-00-02.nzbu8kl.mongodb.net:27017/?ssl=true&replicaSet=atlas-8a48sm-shard-0&authSource=admin&retryWrites=true&w=majority`;
 
-
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 //jwt token function.
@@ -35,8 +34,8 @@ function verifyJwt(req, res, next){
 
 async function run() {
     try {
-     const userCollection = client.db('RebuyPhone').collection('AllProduct');
-     const reviewCollection = client.db('RebuyPhone').collection('reviewData');
+     const userCollection = client.db('Phone').collection('Product');
+     const reviewCollection = client.db('Rubel').collection('reviewData');
 
      //jwt token
      app.post('/jwt', async(req, res)=>{
@@ -46,14 +45,38 @@ async function run() {
         });
         res.send({token});
     })
-        
-        app.get('/GhostBikers', async(req, res) =>{
+        //get all Product 
+        app.get('/AllProduct', async(req, res) =>{
             const query = {};
-            const cursor = userCollection.find(query).sort({time: -1});
-             //new input .sort({time: -1})
-            const users = await cursor.toArray();
-            res.send(users);
+            const cursors = userCollection.find(query);
+            // const cursor = userCollection.find(query).sort({time: -1});
+            const user = await cursors.toArray();
+            res.send(user);
         })
+
+        //get product by Categories
+        app.get('/ProductCategoriesDetails/:Product_Id', async(req, res) =>{
+            const id = parseInt(req.params.Product_Id);
+            const query = {Product_Id:id};
+            const Product = await userCollection.find(query).toArray(function(err, result) {
+                if (err) throw err;
+                res.send(result);
+              });
+        })
+
+        //get Product by Id then Booking...
+        app.get('/ProductBooking/:id', async(req, res) =>{
+            const id = req.params.id;
+            const query = { _id: ObjectId(id)};
+            const product = await userCollection.findOne(query);
+            res.send(product);
+        })
+
+
+
+
+
+        
 
            //GhostBikers api post.
            app.post('/GhostBikers',verifyJwt, async(req, res)=>{
@@ -165,6 +188,6 @@ app.get('/Ghost-Bikers/add', (req, res) =>{
 });
 
 app.listen(port, () =>{
-    console.log(`I Am  ${port}`);
+    console.log(`I Am Ghost ${port}`);
 })
 
