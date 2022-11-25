@@ -28,7 +28,7 @@ function verifyJwt(req, res, next) {
   const token = authHeader.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
     if (err) {
-      return res.status(403).send({ message: "Unauthorized access2" });
+      return res.status(403).send({ message: "Forbidden Assess" });
     }
     req.decoded = decoded;
     next();
@@ -39,14 +39,21 @@ async function run() {
   try {
     const userCollection = client.db("Phone").collection("Product");
     const bookingsCollection = client.db("Phone").collection("bookings");
+    const CreateUserCollection = client.db("Phone").collection("users");
 
-    //jwt token
-    app.post("/jwt", async (req, res) => {
-      const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1d",
-      });
-      res.send({ token });
+    //jwt token create
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await CreateUserCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
+          expiresIn: "1d",
+        });
+        return res.send({ token: token });
+      }
+
+      res.status(403).send({ token: " " });
     });
 
     //get all Product
@@ -77,8 +84,12 @@ async function run() {
     });
 
     //booking data get to mongoDB
-    app.post("/ProductBooking", async (req, res) => {
+    app.get("/ProductBooking", verifyJwt, async (req, res) => {
       const email = req.query.email;
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "Forbidden Assess" });
+      }
       const query = { email: email };
       const booking = await bookingsCollection.find(query).toArray();
       res.send(booking);
@@ -92,8 +103,14 @@ async function run() {
       res.send(product);
     });
 
-    //GhostBikers api post.others......
+    //create user and save to mongoDB
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await CreateUserCollection.insertOne(user);
+      res.send(result);
+    });
 
+    //GhostBikers api post.others......
     app.post("/ProductBooking", async (req, res) => {
       req.body.time = new Date();
       const service = req.body;
