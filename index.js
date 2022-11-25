@@ -109,6 +109,13 @@ async function run() {
       const result = await CreateUserCollection.insertOne(user);
       res.send(result);
     });
+    //get data by user role
+    app.get("/users/:role", async (req, res) => {
+      const role = req.params.role;
+      const query = { role };
+      const Product = await CreateUserCollection.find(query).toArray();
+      res.send(Product);
+    });
 
     //GhostBikers api post.others......
     app.post("/ProductBooking", async (req, res) => {
