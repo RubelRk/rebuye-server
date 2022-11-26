@@ -48,7 +48,7 @@ async function run() {
       const user = await CreateUserCollection.findOne(query);
       if (user) {
         const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
-          expiresIn: "1d",
+          expiresIn: "10d",
         });
         return res.send({ token: token });
       }
@@ -63,6 +63,12 @@ async function run() {
       const user = await cursors.toArray();
       res.send(user);
     });
+    //post data into all Product
+    app.post("/AllProduct", async (req, res) => {
+      const product = req.body;
+      const result = await userCollection.insertOne(product);
+      res.send(result);
+    });
     //get MyProduct data by email
     app.get("/myProduct", verifyJwt, async (req, res) => {
       const email = req.query.email;
@@ -76,9 +82,9 @@ async function run() {
     });
 
     //get product by Categories
-    app.get("/ProductCategoriesDetails/:Product_Id", async (req, res) => {
-      const id = parseInt(req.params.Product_Id);
-      const query = { Product_Id: id };
+    app.get("/AllProduct/:Brand", async (req, res) => {
+      const Brand = req.params.Brand;
+      const query = { Brand };
       const Product = await userCollection
         .find(query)
         .toArray(function (err, result) {
@@ -106,14 +112,12 @@ async function run() {
       res.send(booking);
     });
 
-    //get Product by Id then Booking...(not use)
-    app.get("/ProductBooking/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const product = await userCollection.findOne(query);
-      res.send(product);
+    //get all user on verify
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const result = await CreateUserCollection.find(query).toArray();
+      res.send(result);
     });
-
     //create user and save to mongoDB
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -127,22 +131,35 @@ async function run() {
       const Product = await CreateUserCollection.find(query).toArray();
       res.send(Product);
     });
+    //only admin route create by user
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await CreateUserCollection.findOne(query);
+      res.send({ iaAdmin: user?.role === "admin" });
+    });
 
-    //Review api Update.
-    app.patch("/reviewData/:id", verifyJwt, async (req, res) => {
+    //user Verify update
+    app.put("/users/admin/:id", verifyJwt, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await CreateUserCollection.findOne(query);
+      if (user?.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden Assess" });
+      }
       const id = req.params.id;
-      const status = req.body.status;
-      const email = req.body.email;
-      const serviceName = req.body.serviceName;
-      const query = { _id: ObjectId(id) };
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
       const updatedUser = {
         $set: {
-          status: status,
-          email: email,
-          serviceName: serviceName,
+          userInfo: "verified",
         },
       };
-      const result = await reviewCollection.updateOne(query, updatedUser);
+      const result = await CreateUserCollection.updateOne(
+        filter,
+        updatedUser,
+        options
+      );
       res.send(result);
     });
 
@@ -159,12 +176,9 @@ async function run() {
 run().catch((err) => console.log(err));
 
 app.get("/", (req, res) => {
-  res.send("Ghost Is Coming Soon....");
-});
-app.get("/Ghost-Bikers/add", (req, res) => {
-  res.send("I am Ghost-Bikers add data");
+  res.send("Coming Soon....");
 });
 
 app.listen(port, () => {
-  console.log(`I Am Ghost ${port}`);
+  console.log(`I Am  ${port}`);
 });
