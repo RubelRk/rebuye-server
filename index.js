@@ -63,6 +63,17 @@ async function run() {
       const user = await cursors.toArray();
       res.send(user);
     });
+    //get MyProduct data by email
+    app.get("/myProduct", verifyJwt, async (req, res) => {
+      const email = req.query.email;
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "Forbidden Assess" });
+      }
+      const query = { email: email };
+      const booking = await userCollection.find(query).toArray();
+      res.send(booking);
+    });
 
     //get product by Categories
     app.get("/ProductCategoriesDetails/:Product_Id", async (req, res) => {
@@ -115,71 +126,6 @@ async function run() {
       const query = { role };
       const Product = await CreateUserCollection.find(query).toArray();
       res.send(Product);
-    });
-
-    //GhostBikers api post.others......
-    app.post("/ProductBooking", async (req, res) => {
-      req.body.time = new Date();
-      const service = req.body;
-      const result = await userCollection.insertOne(service);
-      res.send(result);
-    });
-
-    app.get("/GhostBikersLimit", async (req, res) => {
-      const query = {};
-      const cursor = userCollection.find(query).sort({ time: -1 });
-      //new input=.sort({time: -1})
-      const users = await cursor.limit(3).toArray();
-      res.send(users);
-    });
-
-    app.get("/GhostBikers/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const ghost = await userCollection.findOne(query);
-      res.send(ghost);
-    });
-    app.get("/reviewDatas", async (req, res) => {
-      const query = {};
-      const cursor = reviewCollection.find(query);
-      const users = await cursor.toArray();
-      res.send(users);
-    });
-
-    //Review api get all EmailData.
-    app.get("/reviewData", verifyJwt, async (req, res) => {
-      const decoded = req.decoded;
-      console.log(decoded);
-      if (decoded.email !== req.query.email) {
-        return res.status(403).send({ message: "Unauthorized access3" });
-      }
-      let query = {};
-      if (req.query.email) {
-        query = {
-          email: req.query.email,
-        };
-      }
-      const cursor = reviewCollection.find(query).sort({ time: -1 });
-      const reviews = await cursor.toArray();
-      res.send(reviews);
-    });
-
-    //.sort( { price: -1 } )
-
-    //Review api get Id Data.
-    app.get("/reviewData/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const ghost = await reviewCollection.findOne(query);
-      res.send(ghost);
-    });
-
-    //Review api post.
-    app.post("/reviewData", verifyJwt, async (req, res) => {
-      req.body.time = new Date();
-      const review = req.body;
-      const result = await reviewCollection.insertOne(review);
-      res.send(result);
     });
 
     //Review api Update.
