@@ -55,7 +55,7 @@ async function run() {
 
       res.status(403).send({ token: " " });
     });
-
+    //This is AllProduct section
     //get all Product
     app.get("/AllProduct", async (req, res) => {
       const query = {};
@@ -67,6 +67,38 @@ async function run() {
     app.post("/AllProduct", async (req, res) => {
       const product = req.body;
       const result = await userCollection.insertOne(product);
+      res.send(result);
+    });
+
+    //AllProduct Advertised update by seller
+    app.put("/AllProduct/seller/:id", verifyJwt, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "Seller") {
+        return res.status(403).send({ message: "Forbidden Assess" });
+      }
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedUser = {
+        $set: {
+          productInfo: "Advertised",
+        },
+      };
+      const result = await CreateUserCollection.updateOne(
+        filter,
+        updatedUser,
+        options
+      );
+      res.send(result);
+    });
+
+    //Seller delete data from myProduct verifyJwt,
+    app.delete("/AllProduct/:id", verifyJwt, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
       res.send(result);
     });
     //get MyProduct data by email
@@ -93,6 +125,7 @@ async function run() {
         });
     });
 
+    //This is ProductBooking section
     //booking data save to mongoDB
     app.post("/ProductBooking", async (req, res) => {
       const booking = req.body;
@@ -112,6 +145,7 @@ async function run() {
       res.send(booking);
     });
 
+    //This is user section
     //get all user on verify
     app.get("/users", async (req, res) => {
       const query = {};
@@ -131,7 +165,22 @@ async function run() {
       const Product = await CreateUserCollection.find(query).toArray();
       res.send(Product);
     });
-    //only admin route create by user
+
+    // //only buyer  route create by hook verifyJwt,
+    // app.get("/users/buyer/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   const query = { email };
+    //   const user = await CreateUserCollection.findOne(query);
+    //   res.send({ isSeller: user?.role === "Buyer" });
+    // });
+    //only seller  route create by hook verifyJwt,
+    app.get("/users/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await CreateUserCollection.findOne(query);
+      res.send({ isSeller: user?.role === "Seller" });
+    });
+    //only admin route create by hook verifyJwt,
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -139,7 +188,15 @@ async function run() {
       res.send({ iaAdmin: user?.role === "admin" });
     });
 
-    //user Verify update
+    //admin delete data from seller and buyer
+    app.delete("/users/:id", verifyJwt, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await CreateUserCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    //user Verify update by admin
     app.put("/users/admin/:id", verifyJwt, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
@@ -160,14 +217,6 @@ async function run() {
         updatedUser,
         options
       );
-      res.send(result);
-    });
-
-    //Review api delete.
-    app.delete("/reviewData/:id", verifyJwt, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await reviewCollection.deleteOne(query);
       res.send(result);
     });
   } finally {
