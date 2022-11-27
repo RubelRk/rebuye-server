@@ -57,13 +57,21 @@ async function run() {
     });
     //This is AllProduct section
     //get all Product
+
+    // app.get("/alProduct/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   const query = { email };
+    //   const user = await CreateUserCollection.findOne(query);
+    //   res.send({ iaAdmin: user?.role === "admin" });
+    // });
+
     app.get("/AllProduct", async (req, res) => {
       const query = {};
       const cursors = userCollection.find(query);
       const user = await cursors.toArray();
       res.send(user);
     });
-    //post data into all Product
+    //post data into AllProduct by add a Product
     app.post("/AllProduct", async (req, res) => {
       const product = req.body;
       const result = await userCollection.insertOne(product);
@@ -86,6 +94,36 @@ async function run() {
         options
       );
       res.send(result);
+    });
+
+    //Report items by buyer in AllProduct
+    app.put("/reportProduct/:id", verifyJwt, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedUser = {
+        $set: {
+          report: "Report Item",
+        },
+      };
+      const result = await userCollection.updateOne(
+        filter,
+        updatedUser,
+        options
+      );
+      res.send(result);
+    });
+
+    //Report Item all get show admin route   verifyJwt,
+    app.get("/reportItems/:report", async (req, res) => {
+      const report = req.params.report;
+      const query = { report };
+      const Product = await userCollection
+        .find(query)
+        .toArray(function (err, result) {
+          if (err) throw err;
+          res.send(result);
+        });
     });
 
     //Seller delete data from myProduct verifyJwt,
@@ -119,7 +157,7 @@ async function run() {
         });
     });
     //get product by  productInfo : Advertised
-    app.get("/aProduct/:productInfo", verifyJwt, async (req, res) => {
+    app.get("/aProduct/:productInfo", async (req, res) => {
       const productInfo = req.params.productInfo;
       const query = { productInfo };
       const Product = await userCollection
@@ -178,13 +216,12 @@ async function run() {
       res.send({ isSeller: user?.role === "Seller" });
     });
 
-    //????name: user?.name
     //only admin route create by hook verifyJwt,
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await CreateUserCollection.findOne(query);
-      res.send({ iaAdmin: user?.role === "admin", name: user?.name });
+      res.send({ iaAdmin: user?.role === "admin" });
     });
 
     //admin delete data from seller and buyer
