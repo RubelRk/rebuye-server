@@ -7,6 +7,8 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 4000;
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
 app.use(cors());
 app.use(express.json());
 
@@ -187,7 +189,33 @@ async function run() {
       res.send(booking);
     });
 
-    //This is user section
+    //get booking data to id
+    app.get("/bookingData/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const bookingData = await bookingsCollection.findOne(query);
+      res.send(bookingData);
+    });
+
+    //Payment booking product
+
+    app.post("/create-payment-intent", verifyJwt, async (req, res) => {
+      const booking = req.body;
+      const price = booking.resale_price;
+      const amount = price * 100;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        currency: "usd",
+        amount: amount,
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    //This is user section start
     //get all user on verify
     app.get("/users", async (req, res) => {
       const query = {};
@@ -248,11 +276,34 @@ async function run() {
           userInfo: "verified",
         },
       };
+
+      const result2 = await CreateUserCollection.findOne(
+        filter,
+        async function (err, userResult) {
+          if (err) throw err;
+          console.log("userResult", userResult);
+          const email = userResult.email;
+          const emailFilter = { email: email };
+          console.log("emailFilter", emailFilter);
+          const updatedProduct = {
+            $set: {
+              userInfo: "verified",
+            },
+          };
+          const userProduct = await userCollection.updateMany(
+            emailFilter,
+            updatedProduct,
+            options
+          );
+        }
+      );
+
       const result = await CreateUserCollection.updateOne(
         filter,
         updatedUser,
         options
       );
+
       res.send(result);
     });
   } finally {
