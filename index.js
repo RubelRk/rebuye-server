@@ -42,6 +42,7 @@ async function run() {
     const userCollection = client.db("Phone").collection("Product");
     const bookingsCollection = client.db("Phone").collection("bookings");
     const CreateUserCollection = client.db("Phone").collection("users");
+    const paymentsCollection = client.db("Phone").collection("payments");
 
     //jwt token create
     app.get("/jwt", async (req, res) => {
@@ -215,6 +216,24 @@ async function run() {
       });
     });
 
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const payResult = await paymentsCollection.insertOne(payment);
+      const id = payment.bookingId;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const updatedResult = await bookingsCollection.updateOne(
+        filter,
+        updatedDoc
+      );
+      res.send(payResult);
+    });
+
     //This is user section start
     //get all user on verify
     app.get("/users", async (req, res) => {
@@ -241,7 +260,10 @@ async function run() {
       const email = req.params.email;
       const query = { email };
       const user = await CreateUserCollection.findOne(query);
-      res.send({ isSeller: user?.role === "Seller" });
+      res.send({
+        isSeller: user?.role === "Seller",
+        isVerify: user?.userInfo === "verified",
+      });
     });
 
     //only admin route create by hook verifyJwt,
@@ -260,7 +282,7 @@ async function run() {
       res.send(result);
     });
 
-    //user Verify update by admin
+    //user and user product  Verify update by admin
     app.put("/users/admin/:id", verifyJwt, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
