@@ -221,6 +221,7 @@ async function run() {
       const payResult = await paymentsCollection.insertOne(payment);
       const id = payment.bookingId;
       const filter = { _id: ObjectId(id) };
+      //filter korte hobe productId:_id diye.
       const updatedDoc = {
         $set: {
           paid: true,
@@ -230,6 +231,18 @@ async function run() {
       const updatedResult = await bookingsCollection.updateOne(
         filter,
         updatedDoc
+      );
+      const ids = payment.bookingId;
+      const filters = { _id: ObjectId(ids) };
+      const updatedDocs = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const updatedAllProduct = await userCollection.updateOne(
+        filters,
+        updatedDocs
       );
       res.send(payResult);
     });
